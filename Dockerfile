@@ -5,10 +5,10 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-ADD cmd ./cmd
-ADD pkg ./pkg
+COPY cmd/ cmd/
+COPY pkg/ pkg/
 
-RUN CGO_ENABLED=0 GOOS=linux go build cmd/main.go
+RUN go build -o main ./cmd/main.go
 
 EXPOSE 8080
 

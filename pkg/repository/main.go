@@ -1,37 +1,22 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"database/sql"
+	"github.com/jackc/pgx/v5"
 
-	_ "github.com/lib/pq"
 	"github.com/mgenteluci/rinha-2024-q1/pkg/types"
-)
-
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "postgres"
-	password = "postgres"
-	dbname   = "postgres"
 )
 
 type ClientsRepository struct {
 	databaseURL string
-	database    *sql.DB
+	database    *pgx.Conn
 }
 
 func NewClientsRepository(databaseURL string) *ClientsRepository {
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-
-	database, err := sql.Open("postgres", psqlconn)
-	if err != nil {
-		panic(err)
-	}
-
-	err = database.Ping()
+	database, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@postgres:5432/postgres")
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +27,7 @@ func NewClientsRepository(databaseURL string) *ClientsRepository {
 func (c *ClientsRepository) GetClient(clientID string) (*types.Client, error) {
 	query := `SELECT id, client_limit, balance FROM clients WHERE id=$1`
 	var client types.Client
-	err := c.database.QueryRow(query, clientID).Scan(&client.ID, &client.Limit, &client.Balance)
+	err := c.database.QueryRow(context.Background(), query, clientID).Scan(&client.ID, &client.Limit, &client.Balance)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			return nil, fmt.Errorf("recurso nao encontrado")
@@ -54,17 +39,19 @@ func (c *ClientsRepository) GetClient(clientID string) (*types.Client, error) {
 }
 
 func (c *ClientsRepository) SaveTransaction(clientID string, clientBalance int, transaction *types.NewTransactionRequestPayload) (*types.NewTransactionResponse, error) {
-	tx, err := c.database.Begin()
+	tx, err := c.database.Begin(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(context.Background())
 
 	query := `
 		INSERT INTO transactions(client_id, transaction_value, transaction_type, transaction_description, transaction_date)
 		VALUES ($1, $2, $3, $4, $5)
 	`
-	_, err = tx.Exec(query,
+	_, err = tx.Exec(
+		context.Background(),
+		query,
 		clientID,
 		transaction.Value,
 		transaction.Type,
@@ -74,14 +61,14 @@ func (c *ClientsRepository) SaveTransaction(clientID string, clientBalance int, 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	query = `UPDATE clients SET balance = $1 WHERE id = $2`
-	_, err = tx.Exec(query, clientBalance, clientID)
+	_, err = tx.Exec(context.Background(), query, clientBalance, clientID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = tx.Commit()
+	err = tx.Commit(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +85,7 @@ func (c *ClientsRepository) GetClientDetails(clientID string) (*types.GetDetails
 		ORDER BY transactions.id DESC
 		LIMIT 10
 	`
-	rows, err := c.database.Query(query, clientID)
+	rows, err := c.database.Query(context.Background(), query, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -125,9 +112,10 @@ func (c *ClientsRepository) GetClientDetails(clientID string) (*types.GetDetails
 	return &response, nil
 }
 
-func scanTransaction(rows *sql.Rows, balance *types.GetDetailsBalance) *types.GetDetailsTransaction {
+func scanTransaction(rows pgx.Rows, balance *types.GetDetailsBalance) *types.GetDetailsTransaction {
 	var transaction types.GetDetailsTransaction
 	rows.Scan(
+		context.Background(),
 		&balance.Limit,
 		&balance.Total,
 		&transaction.Value,

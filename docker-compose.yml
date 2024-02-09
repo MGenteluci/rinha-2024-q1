@@ -11,24 +11,25 @@ services:
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
     deploy:
       resources:
         limits:
           cpus: '0.7'
           memory: '200MB'
 
-  # api1: &api
-  #   image: mgenteluci/rinha2024q1
-  #   hostname: api1
-  #   ports:
-  #     - "8081:8080"
-  #   depends_on:
-  #     - postgres
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: '0.3'
-  #         memory: '150MB'
+  api1: &api
+    build: .
+    hostname: api1
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: '150MB'
 
   # api2:
   #   <<: *api 

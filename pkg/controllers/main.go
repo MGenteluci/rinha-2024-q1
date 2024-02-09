@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	_ "github.com/lib/pq"
 
 	"github.com/mgenteluci/rinha-2024-q1/pkg/services"
 	"github.com/mgenteluci/rinha-2024-q1/pkg/types"
