@@ -6,11 +6,12 @@ CREATE TABLE clients (
 
 CREATE TABLE transactions (
   id SERIAL PRIMARY KEY,
-  clientID INT FOREIGN KEY(clientID) REFERENCES clients(id),
-  transaction_value INT
-  transaction_type VARCHAR(1)
-  transaction_description VARCHAR(10)
-  transaction_date DATE
+  client_id INT NOT NULL,
+  CONSTRAINT fk_client_id FOREIGN KEY(client_id) REFERENCES clients(id),
+  transaction_value INT,
+  transaction_type VARCHAR(1),
+  transaction_description VARCHAR(10),
+  transaction_date TIMESTAMP
 );
 
 DO $$
