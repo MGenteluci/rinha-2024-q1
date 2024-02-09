@@ -70,16 +70,8 @@ func (c *ClientsRepository) SaveTransaction(clientID string, clientBalance int, 
 		panic(err)
 	}
 
-	query = `
-		UPDATE clients
-		SET balance = $1
-		WHERE id = $2
-	`
-	_, err = c.database.Exec(
-		query,
-		clientBalance,
-		clientID,
-	)
+	query = `UPDATE clients SET balance = $1 WHERE id = $2`
+	_, err = c.database.Exec(query, clientBalance, clientID)
 	if err != nil {
 		panic(err)
 	}

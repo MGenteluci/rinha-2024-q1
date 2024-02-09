@@ -9,7 +9,7 @@ type Client struct {
 }
 
 type NewTransactionRequestPayload struct {
-	Value       int    `json:"valor" validate:"required"`
+	Value       int    `json:"valor" validate:"required,gt=0"`
 	Type        string `json:"tipo" validate:"required,oneof=c d"`
 	Description string `json:"descricao" validate:"required,gte=1,lte=10"`
 }
@@ -31,9 +31,9 @@ type GetDetailsBalance struct {
 }
 
 type GetDetailsTransaction struct {
-	Value            *int      `json:"valor"`
-	Type             *string   `json:"tipo"`
-	Description      *string   `json:"descricao"`
+	Value           *int      `json:"valor"`
+	Type            *string   `json:"tipo"`
+	Description     *string   `json:"descricao"`
 	TransactionDate time.Time `json:"realizada_em"`
 }
 
