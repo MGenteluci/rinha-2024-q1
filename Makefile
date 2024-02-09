@@ -1,10 +1,7 @@
 SHELL = /bin/bash
 
-run.local:
-	@go build cmd/main.go && ./main
-
 run.dev:
-	@docker compose up -d
+	@docker compose up -d --build
 
 docker.build:
 	@docker build -t mgenteluci/rinha2024q1 .
