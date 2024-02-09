@@ -54,12 +54,17 @@ func (c *ClientsRepository) GetClient(clientID string) (*types.Client, error) {
 }
 
 func (c *ClientsRepository) SaveTransaction(clientID string, clientBalance int, transaction *types.NewTransactionRequestPayload) (*types.NewTransactionResponse, error) {
+	tx, err := c.database.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
 	query := `
 		INSERT INTO transactions(client_id, transaction_value, transaction_type, transaction_description, transaction_date)
 		VALUES ($1, $2, $3, $4, $5)
 	`
-	_, err := c.database.Exec(
-		query,
+	_, err = tx.Exec(query,
 		clientID,
 		transaction.Value,
 		transaction.Type,
@@ -67,13 +72,18 @@ func (c *ClientsRepository) SaveTransaction(clientID string, clientBalance int, 
 		time.Now(),
 	)
 	if err != nil {
-		panic(err)
+		return nil, err
+	}
+	
+	query = `UPDATE clients SET balance = $1 WHERE id = $2`
+	_, err = tx.Exec(query, clientBalance, clientID)
+	if err != nil {
+		return nil, err
 	}
 
-	query = `UPDATE clients SET balance = $1 WHERE id = $2`
-	_, err = c.database.Exec(query, clientBalance, clientID)
+	err = tx.Commit()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return nil, nil
