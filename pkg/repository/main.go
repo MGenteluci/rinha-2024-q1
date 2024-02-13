@@ -38,14 +38,32 @@ func (c *ClientsRepository) GetClient(clientID string) (*types.Client, error) {
 	return &client, nil
 }
 
-func (c *ClientsRepository) SaveTransaction(clientID string, clientBalance int, transaction *types.NewTransactionRequestPayload) (*types.NewTransactionResponse, error) {
+func (c *ClientsRepository) SaveTransaction(clientID string, transaction *types.NewTransactionRequestPayload) (*types.NewTransactionResponse, error) {
 	tx, err := c.database.Begin(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(context.Background())
 
-	query := `
+	query := `SELECT id, client_limit, balance FROM clients WHERE id=$1 FOR UPDATE`
+	var client types.Client
+	err = tx.
+		QueryRow(context.Background(), query, clientID).
+		Scan(&client.ID, &client.Limit, &client.Balance)
+	if err != nil {
+		if err.Error() == pgx.ErrNoRows.Error() {
+			return nil, fmt.Errorf("recurso nao encontrado")
+		}
+		return nil, err
+	}
+
+	if transaction.Type == "d" {
+		if absInt(client.Balance-transaction.Value) > client.Limit {
+			return nil, fmt.Errorf("operação não permitida")
+		}
+	}
+
+	query = `
 		INSERT INTO transactions(client_id, transaction_value, transaction_type, transaction_description, transaction_date)
 		VALUES ($1, $2, $3, $4, $5)
 	`
@@ -62,8 +80,9 @@ func (c *ClientsRepository) SaveTransaction(clientID string, clientBalance int, 
 		return nil, err
 	}
 
+	newBalance := NewBalance(&client, transaction)
 	query = `UPDATE clients SET balance = $1 WHERE id = $2`
-	_, err = tx.Exec(context.Background(), query, clientBalance, clientID)
+	_, err = tx.Exec(context.Background(), query, newBalance, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +92,10 @@ func (c *ClientsRepository) SaveTransaction(clientID string, clientBalance int, 
 		return nil, err
 	}
 
-	return nil, nil
+	return &types.NewTransactionResponse{
+		Balance: newBalance,
+		Limit:   client.Limit,
+	}, nil
 }
 
 func (c *ClientsRepository) GetClientDetails(clientID string) (*types.GetDetailsResponse, error) {
@@ -134,4 +156,20 @@ func scanTransaction(rows pgx.Rows, balance *types.GetDetailsBalance) (*types.Ge
 		return nil, err
 	}
 	return &transaction, nil
+}
+
+func absInt(x int) int {
+	if x < 0 {
+		return -x
+	}
+
+	return x
+}
+
+func NewBalance(client *types.Client, transaction *types.NewTransactionRequestPayload) int {
+	if transaction.Type == "d" {
+		return client.Balance - transaction.Value
+	}
+
+	return client.Balance + transaction.Value
 }
