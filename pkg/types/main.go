@@ -31,10 +31,10 @@ type GetDetailsBalance struct {
 }
 
 type GetDetailsTransaction struct {
-	Value           *int      `json:"valor"`
-	Type            *string   `json:"tipo"`
-	Description     *string   `json:"descricao"`
-	TransactionDate time.Time `json:"realizada_em"`
+	Value           *int       `json:"valor"`
+	Type            *string    `json:"tipo"`
+	Description     *string    `json:"descricao"`
+	TransactionDate *time.Time `json:"realizada_em"`
 }
 
 type HttpMessage struct {

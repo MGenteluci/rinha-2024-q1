@@ -97,11 +97,19 @@ func (c *ClientsRepository) GetClientDetails(clientID string) (*types.GetDetails
 	if !rows.Next() {
 		return nil, fmt.Errorf("recurso nao encontrado")
 	} else {
-		transactions = append(transactions, *scanTransaction(rows, &balance))
+		transaction, err := scanTransaction(rows, &balance)
+		if err != nil {
+			return nil, err
+		}
+		transactions = append(transactions, *transaction)
 	}
 
 	for rows.Next() {
-		transactions = append(transactions, *scanTransaction(rows, &balance))
+		transaction, err := scanTransaction(rows, &balance)
+		if err != nil {
+			return nil, err
+		}
+		transactions = append(transactions, *transaction)
 	}
 
 	response := types.GetDetailsResponse{
@@ -112,10 +120,9 @@ func (c *ClientsRepository) GetClientDetails(clientID string) (*types.GetDetails
 	return &response, nil
 }
 
-func scanTransaction(rows pgx.Rows, balance *types.GetDetailsBalance) *types.GetDetailsTransaction {
+func scanTransaction(rows pgx.Rows, balance *types.GetDetailsBalance) (*types.GetDetailsTransaction, error) {
 	var transaction types.GetDetailsTransaction
-	rows.Scan(
-		context.Background(),
+	err := rows.Scan(
 		&balance.Limit,
 		&balance.Total,
 		&transaction.Value,
@@ -123,5 +130,8 @@ func scanTransaction(rows pgx.Rows, balance *types.GetDetailsBalance) *types.Get
 		&transaction.Description,
 		&transaction.TransactionDate,
 	)
-	return &transaction
+	if err != nil {
+		return nil, err
+	}
+	return &transaction, nil
 }

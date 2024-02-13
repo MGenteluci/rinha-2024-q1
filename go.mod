@@ -2,8 +2,6 @@ module github.com/mgenteluci/rinha-2024-q1
 
 go 1.22.0
 
-require github.com/go-chi/chi/v5 v5.0.11
-
 require (
 	github.com/go-playground/validator/v10 v10.17.0
 	github.com/jackc/pgx/v5 v5.5.3

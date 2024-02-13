@@ -1,25 +1,24 @@
-package controllers
+package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
 
 	"github.com/mgenteluci/rinha-2024-q1/pkg/services"
 	"github.com/mgenteluci/rinha-2024-q1/pkg/types"
 )
 
-type ClientsController struct {
+type ClientsHandler struct {
 	clientsService *services.ClientsService
 }
 
-func NewClientsController(clientsService *services.ClientsService) *ClientsController {
-	return &ClientsController{clientsService}
+func NewClientsHandler(clientsService *services.ClientsService) *ClientsHandler {
+	return &ClientsHandler{clientsService}
 }
 
-func (c *ClientsController) GetClientDetails(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+func (c *ClientsHandler) GetClientDetails(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
 	details, err := c.clientsService.GetClientDetails(id)
 	if err != nil {
 		if err.Error() == "recurso nao encontrado" {
@@ -34,7 +33,7 @@ func (c *ClientsController) GetClientDetails(w http.ResponseWriter, r *http.Requ
 	WriteHttpResponse(w, 200, details)
 }
 
-func (c *ClientsController) CreateTransaction(w http.ResponseWriter, r *http.Request) {
+func (c *ClientsHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	var transaction types.NewTransactionRequestPayload
 	err := json.NewDecoder(r.Body).Decode(&transaction)
 	if err != nil {
@@ -42,7 +41,7 @@ func (c *ClientsController) CreateTransaction(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	id := chi.URLParam(r, "id")
+	id := r.PathValue("id")
 
 	response, err := c.clientsService.SaveTransaction(id, &transaction)
 	if err != nil {
