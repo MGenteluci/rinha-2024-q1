@@ -15,7 +15,7 @@ type ClientsRepository struct {
 }
 
 func NewClientsRepository() *ClientsRepository {
-	database, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@postgres:5432/postgres")
+	database, err := pgx.Connect(context.Background(), "host=postgres user=postgres password=postgres dbname=postgres port=5432 sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
