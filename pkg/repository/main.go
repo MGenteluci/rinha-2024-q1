@@ -11,17 +11,16 @@ import (
 )
 
 type ClientsRepository struct {
-	databaseURL string
-	database    *pgx.Conn
+	database *pgx.Conn
 }
 
-func NewClientsRepository(databaseURL string) *ClientsRepository {
+func NewClientsRepository() *ClientsRepository {
 	database, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@postgres:5432/postgres")
 	if err != nil {
 		panic(err)
 	}
 
-	return &ClientsRepository{databaseURL, database}
+	return &ClientsRepository{database}
 }
 
 func (c *ClientsRepository) GetClient(clientID string) (*types.Client, error) {

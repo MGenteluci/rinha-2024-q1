@@ -20,7 +20,7 @@ var (
 func init() {
 	validate = validator.New(validator.WithRequiredStructEnabled())
 
-	clientsRepository = repository.NewClientsRepository("")
+	clientsRepository = repository.NewClientsRepository()
 	clientsService = services.NewClientsService(validate, clientsRepository)
 	clientsHandler = handlers.NewClientsHandler(clientsService)
 }
