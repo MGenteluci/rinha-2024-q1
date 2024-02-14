@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/mgenteluci/rinha-2024-q1/pkg/handlers"
@@ -18,14 +19,17 @@ var (
 )
 
 func init() {
+	ctx := context.Background()
 	validate = validator.New(validator.WithRequiredStructEnabled())
 
-	clientsRepository = repository.NewClientsRepository()
+	clientsRepository = repository.NewClientsRepository(ctx)
 	clientsService = services.NewClientsService(validate, clientsRepository)
 	clientsHandler = handlers.NewClientsHandler(clientsService)
 }
 
 func main() {
+	defer clientsRepository.Close()
+
 	http.HandleFunc("GET /clientes/{id}/extrato", clientsHandler.GetClientDetails)
 	http.HandleFunc("POST /clientes/{id}/transacoes", clientsHandler.CreateTransaction)
 

@@ -12,29 +12,16 @@ import (
 
 type ClientsRepository struct {
 	database *pgx.Conn
+	ctx      context.Context
 }
 
-func NewClientsRepository() *ClientsRepository {
-	database, err := pgx.Connect(context.Background(), "host=postgres user=postgres password=postgres dbname=postgres port=5432 sslmode=disable")
+func NewClientsRepository(ctx context.Context) *ClientsRepository {
+	database, err := pgx.Connect(ctx, "host=postgres user=postgres password=postgres dbname=postgres port=5432 sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
 
-	return &ClientsRepository{database}
-}
-
-func (c *ClientsRepository) GetClient(clientID string) (*types.Client, error) {
-	query := `SELECT id, client_limit, balance FROM clients WHERE id=$1`
-	var client types.Client
-	err := c.database.QueryRow(context.Background(), query, clientID).Scan(&client.ID, &client.Limit, &client.Balance)
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return nil, fmt.Errorf("recurso nao encontrado")
-		}
-		return nil, err
-	}
-
-	return &client, nil
+	return &ClientsRepository{database, ctx}
 }
 
 func (c *ClientsRepository) SaveTransaction(clientID string, transaction *types.NewTransactionRequestPayload) (*types.NewTransactionResponse, error) {
@@ -155,6 +142,10 @@ func scanTransaction(rows pgx.Rows, balance *types.GetDetailsBalance) (*types.Ge
 		return nil, err
 	}
 	return &transaction, nil
+}
+
+func (c *ClientsRepository) Close() {
+	c.database.Close(c.ctx)
 }
 
 func absInt(x int) int {
