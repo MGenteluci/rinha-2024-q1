@@ -6,17 +6,18 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/mgenteluci/rinha-2024-q1/pkg/types"
 )
 
 type ClientsRepository struct {
-	database *pgx.Conn
+	database *pgxpool.Pool
 	ctx      context.Context
 }
 
 func NewClientsRepository(ctx context.Context) *ClientsRepository {
-	database, err := pgx.Connect(ctx, "host=postgres user=postgres password=postgres dbname=postgres port=5432 sslmode=disable")
+	database, err := pgxpool.New(ctx, "host=postgres user=postgres password=postgres dbname=postgres port=5432 sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
@@ -145,7 +146,7 @@ func scanTransaction(rows pgx.Rows, balance *types.GetDetailsBalance) (*types.Ge
 }
 
 func (c *ClientsRepository) Close() {
-	c.database.Close(c.ctx)
+	c.database.Close()
 }
 
 func absInt(x int) int {
