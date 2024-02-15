@@ -44,32 +44,41 @@ func (c *ClientsRepository) SaveTransaction(clientID string, transaction *types.
 		return nil, err
 	}
 
+	var newBalance int
 	if transaction.Type == "d" {
-		if absInt(client.Balance-transaction.Value) > client.Limit {
-			return nil, fmt.Errorf("operação não permitida")
-		}
+		newBalance = client.Balance - transaction.Value
+	} else {
+		newBalance = client.Balance + transaction.Value
 	}
 
-	query = `
+	if (client.Limit + newBalance) < 0 {
+		return nil, fmt.Errorf("operaçao nao permitida")
+	}
+
+	batch := pgx.Batch{}
+	batch.Queue(
+		`
 		INSERT INTO transactions(client_id, transaction_value, transaction_type, transaction_description, transaction_date)
 		VALUES ($1, $2, $3, $4, $5)
-	`
-	_, err = tx.Exec(
-		context.Background(),
-		query,
+		`,
 		clientID,
 		transaction.Value,
 		transaction.Type,
 		transaction.Description,
 		time.Now(),
 	)
+	batch.Queue(
+		`UPDATE clients SET balance = $1 WHERE id = $2`,
+		newBalance,
+		clientID,
+	)
+
+	batchResults := tx.SendBatch(context.Background(), &batch)
+	_, err = batchResults.Exec()
 	if err != nil {
 		return nil, err
 	}
-
-	newBalance := NewBalance(&client, transaction)
-	query = `UPDATE clients SET balance = $1 WHERE id = $2`
-	_, err = tx.Exec(context.Background(), query, newBalance, clientID)
+	err = batchResults.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -147,20 +156,4 @@ func scanTransaction(rows pgx.Rows, balance *types.GetDetailsBalance) (*types.Ge
 
 func (c *ClientsRepository) Close() {
 	c.database.Close()
-}
-
-func absInt(x int) int {
-	if x < 0 {
-		return -x
-	}
-
-	return x
-}
-
-func NewBalance(client *types.Client, transaction *types.NewTransactionRequestPayload) int {
-	if transaction.Type == "d" {
-		return client.Balance - transaction.Value
-	}
-
-	return client.Balance + transaction.Value
 }

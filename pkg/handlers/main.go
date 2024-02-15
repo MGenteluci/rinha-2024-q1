@@ -49,7 +49,7 @@ func (c *ClientsHandler) CreateTransaction(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		WriteErrorResponse(w, 422, "transacao invalida")
+		WriteErrorResponse(w, 422, err.Error())
 		return
 	}
 
