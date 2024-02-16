@@ -1,9 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
-	"net/http"
-
+	"github.com/gofiber/fiber/v2"
 	"github.com/mgenteluci/rinha-2024-q1/pkg/services"
 	"github.com/mgenteluci/rinha-2024-q1/pkg/types"
 )
@@ -16,52 +14,36 @@ func NewClientsHandler(clientsService *services.ClientsService) *ClientsHandler 
 	return &ClientsHandler{clientsService}
 }
 
-func (c *ClientsHandler) GetClientDetails(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	details, err := c.clientsService.GetClientDetails(id)
+func (h *ClientsHandler) GetClientDetails(c *fiber.Ctx) error {
+	id := c.Params("id")
+	details, err := h.clientsService.GetClientDetails(id)
 	if err != nil {
 		if err.Error() == "recurso nao encontrado" {
-			WriteErrorResponse(w, 404, err.Error())
-			return
+			return c.SendStatus(404)
 		}
 
-		WriteErrorResponse(w, 500, err.Error())
-		return
+		return c.SendStatus(500)
 	}
 
-	WriteHttpResponse(w, 200, details)
+	return c.Status(200).JSON(details)
 }
 
-func (c *ClientsHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
+func (h *ClientsHandler) CreateTransaction(c *fiber.Ctx) error {
 	var transaction types.NewTransactionRequestPayload
-	err := json.NewDecoder(r.Body).Decode(&transaction)
-	if err != nil {
-		WriteErrorResponse(w, 422, "transacao invalida")
-		return
+	if err := c.BodyParser(&transaction); err != nil {
+		return c.SendStatus(422)
 	}
 
-	id := r.PathValue("id")
+	id := c.Params("id")
 
-	response, err := c.clientsService.SaveTransaction(id, &transaction)
+	response, err := h.clientsService.SaveTransaction(id, &transaction)
 	if err != nil {
 		if err.Error() == "recurso nao encontrado" {
-			WriteErrorResponse(w, 404, "recurso nao encontrado")
-			return
+			return c.SendStatus(404)
 		}
 
-		WriteErrorResponse(w, 422, err.Error())
-		return
+		return c.SendStatus(422)
 	}
 
-	WriteHttpResponse(w, 200, response)
-}
-
-func WriteErrorResponse(w http.ResponseWriter, statusCode int, message string) {
-	WriteHttpResponse(w, statusCode, `{"message":"`+message+`"}`)
-}
-
-func WriteHttpResponse(w http.ResponseWriter, statusCode int, body interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(body)
+	return c.Status(200).JSON(response)
 }

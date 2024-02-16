@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/mgenteluci/rinha-2024-q1/pkg/handlers"
 	"github.com/mgenteluci/rinha-2024-q1/pkg/repository"
 	"github.com/mgenteluci/rinha-2024-q1/pkg/services"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
 )
 
 var (
@@ -29,9 +29,10 @@ func init() {
 
 func main() {
 	defer clientsRepository.Close()
+	app := fiber.New()
 
-	http.HandleFunc("GET /clientes/{id}/extrato", clientsHandler.GetClientDetails)
-	http.HandleFunc("POST /clientes/{id}/transacoes", clientsHandler.CreateTransaction)
+	app.Get("/clientes/:id/extrato", clientsHandler.GetClientDetails)
+	app.Post("/clientes/:id/transacoes", clientsHandler.CreateTransaction)
 
-	http.ListenAndServe(":8080", nil)
+	app.Listen(":8080")
 }
