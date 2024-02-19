@@ -25,9 +25,9 @@ type GetDetailsResponse struct {
 }
 
 type GetDetailsBalance struct {
+	Limit      *int      `json:"limite"`
 	Total      *int      `json:"total"`
 	SearchDate time.Time `json:"data_extrato"`
-	Limit      *int      `json:"limite"`
 }
 
 type GetDetailsTransaction struct {

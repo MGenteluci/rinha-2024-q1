@@ -95,63 +95,36 @@ func (c *ClientsRepository) SaveTransaction(clientID string, transaction *types.
 }
 
 func (c *ClientsRepository) GetClientDetails(clientID string) (*types.GetDetailsResponse, error) {
-	query := `
-		SELECT clients.client_limit, clients.balance, transactions.transaction_value, transactions.transaction_type, transactions.transaction_description, transactions.transaction_date
-		FROM clients
-		LEFT JOIN transactions ON transactions.client_id = clients.id
-		WHERE clients.id = $1
-		ORDER BY transactions.id DESC
-		LIMIT 10
-	`
+	query := `SELECT client_limit, balance, now() FROM clients where id = $1`
 	rows, err := c.database.Query(c.ctx, query, clientID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	balance := types.GetDetailsBalance{SearchDate: time.Now()}
-	transactions := []types.GetDetailsTransaction{}
-
-	if !rows.Next() {
-		return nil, fmt.Errorf("recurso nao encontrado")
-	} else {
-		transaction, err := scanTransaction(rows, &balance)
-		if err != nil {
-			return nil, err
+	balanceDetails, err := pgx.CollectOneRow(rows, pgx.RowToStructByPos[types.GetDetailsBalance])
+	if err != nil {
+		if err.Error() == pgx.ErrNoRows.Error() {
+			return nil, fmt.Errorf("recurso nao encontrado")
 		}
-		transactions = append(transactions, *transaction)
+		return nil, err
 	}
 
-	for rows.Next() {
-		transaction, err := scanTransaction(rows, &balance)
-		if err != nil {
-			return nil, err
-		}
-		transactions = append(transactions, *transaction)
+	query = `SELECT transaction_value, transaction_type, transaction_description, transaction_date
+	FROM transactions
+	WHERE client_id = $1
+	ORDER BY id DESC
+	LIMIT 10`
+	rows, _ = c.database.Query(c.ctx, query, clientID)
+	transactions, err := pgx.CollectRows(rows, pgx.RowToStructByPos[types.GetDetailsTransaction])
+	if err != nil {
+		return nil, err
 	}
 
 	response := types.GetDetailsResponse{
-		Balance:          balance,
+		Balance:          balanceDetails,
 		LastTransactions: transactions,
 	}
 
 	return &response, nil
-}
-
-func scanTransaction(rows pgx.Rows, balance *types.GetDetailsBalance) (*types.GetDetailsTransaction, error) {
-	var transaction types.GetDetailsTransaction
-	err := rows.Scan(
-		&balance.Limit,
-		&balance.Total,
-		&transaction.Value,
-		&transaction.Type,
-		&transaction.Description,
-		&transaction.TransactionDate,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return &transaction, nil
 }
 
 func (c *ClientsRepository) Close() {
