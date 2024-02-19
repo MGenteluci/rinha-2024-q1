@@ -32,11 +32,12 @@ func (c *ClientsRepository) SaveTransaction(clientID string, transaction *types.
 	}
 	defer tx.Rollback(c.ctx)
 
-	query := `SELECT id, client_limit, balance FROM clients WHERE id=$1 FOR UPDATE`
-	var client types.Client
+	var limit, balance, newBalance int
+
+	query := `SELECT client_limit, balance FROM clients WHERE id=$1 FOR UPDATE`
 	err = tx.
 		QueryRow(c.ctx, query, clientID).
-		Scan(&client.ID, &client.Limit, &client.Balance)
+		Scan(&limit, &balance)
 	if err != nil {
 		if err.Error() == pgx.ErrNoRows.Error() {
 			return nil, fmt.Errorf("recurso nao encontrado")
@@ -44,14 +45,13 @@ func (c *ClientsRepository) SaveTransaction(clientID string, transaction *types.
 		return nil, err
 	}
 
-	var newBalance int
 	if transaction.Type == "d" {
-		newBalance = client.Balance - transaction.Value
+		newBalance = balance - transaction.Value
 	} else {
-		newBalance = client.Balance + transaction.Value
+		newBalance = balance + transaction.Value
 	}
 
-	if (client.Limit + newBalance) < 0 {
+	if (limit + newBalance) < 0 {
 		return nil, fmt.Errorf("operaçao nao permitida")
 	}
 
@@ -90,7 +90,7 @@ func (c *ClientsRepository) SaveTransaction(clientID string, transaction *types.
 
 	return &types.NewTransactionResponse{
 		Balance: newBalance,
-		Limit:   client.Limit,
+		Limit:   limit,
 	}, nil
 }
 
