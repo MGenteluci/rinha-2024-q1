@@ -10,4 +10,4 @@ docker.push:
 	@docker push mgenteluci/rinha2024q1
 
 run.prod:
-	@docker compose -f docker-compose-prod.yml up -d --force-recreate
+	@docker compose up -d --force-recreate

@@ -8,6 +8,7 @@ import (
 	"github.com/mgenteluci/rinha-2024-q1/pkg/services"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -29,7 +30,11 @@ func init() {
 
 func main() {
 	defer clientsRepository.Close()
-	app := fiber.New()
+
+	app := fiber.New(fiber.Config{
+		JSONEncoder: json.Marshal,
+		JSONDecoder: json.Unmarshal,
+	})
 
 	app.Get("/clientes/:id/extrato", clientsHandler.GetClientDetails)
 	app.Post("/clientes/:id/transacoes", clientsHandler.CreateTransaction)

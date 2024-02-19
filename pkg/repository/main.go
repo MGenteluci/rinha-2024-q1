@@ -26,16 +26,16 @@ func NewClientsRepository(ctx context.Context) *ClientsRepository {
 }
 
 func (c *ClientsRepository) SaveTransaction(clientID string, transaction *types.NewTransactionRequestPayload) (*types.NewTransactionResponse, error) {
-	tx, err := c.database.Begin(context.Background())
+	tx, err := c.database.Begin(c.ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(context.Background())
+	defer tx.Rollback(c.ctx)
 
 	query := `SELECT id, client_limit, balance FROM clients WHERE id=$1 FOR UPDATE`
 	var client types.Client
 	err = tx.
-		QueryRow(context.Background(), query, clientID).
+		QueryRow(c.ctx, query, clientID).
 		Scan(&client.ID, &client.Limit, &client.Balance)
 	if err != nil {
 		if err.Error() == pgx.ErrNoRows.Error() {
@@ -73,7 +73,7 @@ func (c *ClientsRepository) SaveTransaction(clientID string, transaction *types.
 		clientID,
 	)
 
-	batchResults := tx.SendBatch(context.Background(), &batch)
+	batchResults := tx.SendBatch(c.ctx, &batch)
 	_, err = batchResults.Exec()
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (c *ClientsRepository) SaveTransaction(clientID string, transaction *types.
 		return nil, err
 	}
 
-	err = tx.Commit(context.Background())
+	err = tx.Commit(c.ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (c *ClientsRepository) GetClientDetails(clientID string) (*types.GetDetails
 		ORDER BY transactions.id DESC
 		LIMIT 10
 	`
-	rows, err := c.database.Query(context.Background(), query, clientID)
+	rows, err := c.database.Query(c.ctx, query, clientID)
 	if err != nil {
 		return nil, err
 	}
