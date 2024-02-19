@@ -1,10 +1,10 @@
-CREATE TABLE clients (
+CREATE TABLE IF NOT EXISTS clients (
   id SERIAL PRIMARY KEY,
   client_limit INT,
   balance INT
 );
 
-CREATE TABLE transactions (
+CREATE TABLE IF NOT EXISTS transactions (
   id SERIAL PRIMARY KEY,
   client_id INT NOT NULL,
   CONSTRAINT fk_client_id FOREIGN KEY(client_id) REFERENCES clients(id),
@@ -13,6 +13,8 @@ CREATE TABLE transactions (
   transaction_description VARCHAR(10),
   transaction_date TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_tx_client_id ON transactions ("client_id");
 
 DO $$
 BEGIN
